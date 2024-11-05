@@ -1,19 +1,50 @@
-async function main() {
-  const [deployer] = await ethers.getSigners();
+const {ethers} = require("hardhat");
+const fs = require("fs");
 
-  console.log("Deploying contracts with the account:", deployer.address);
-
-  const FSCS = await ethers.getContractFactory("FSCS"); // 替換為你的合約名稱
-  const fscs = await FSCS.deploy("0xdAC17F958D2ee523a2206206994597C13D831ec7","0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599");
-  const TEST = await ethers.getContractFactory("contracts/test.sol:Test"); // 替換為你的合約名稱
-  const test = await TEST.deploy();
-
-  console.log("Type of Test is ",typeof test);
-  console.log("FSCS contract deployed to:", fscs.target);
-  console.log("Test contract deployed to:",test.target);
+//檢查地址是否為合約地址
+async function checkContract(address) {
+    const provider = new ethers.JsonRpcProvider("http://localhost:8545");
+    const code = await provider.getCode(address);
+    console.log(code);
+    if (code !== "0x") {
+        console.log("這是一個智能合約地址");
+    } else {
+        console.log("這是一個普通的以太坊地址");
+    }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+async function main() {
+    const [deployer] = await ethers.getSigners();
+    console.log("Deploying contracts with the account:", deployer.address);
+    
+    console.log("Deploying fakeUSDT");
+    const usdt = await ethers.deployContract("fakeUSDT");
+
+    console.log("Deploying fakeWBTC");
+    const wbtc = await ethers.deployContract("fakeWBTC");
+    
+    console.log("USDT address:", usdt.target, ", WBTC address:", wbtc.target);
+
+    console.log("Deploying fakeSwap");
+    const swap = await ethers.deployContract("contracts/fakeSwap.sol:fakeSwap", [usdt.target,wbtc.target]);
+    console.log("Swap address:", swap.target);
+
+    console.log("Deploying FSCS");
+    const bottom = 10;
+    const reference = 100;
+    const grid = 5;
+    const fscs = await ethers.deployContract("FSCS", [usdt.target,wbtc.target,swap.target, bottom, reference, grid]);
+    console.log("FSCS address:", fscs.target);
+    
+    //將合約地址寫入json文件
+    let contracts = {
+        "USDT": usdt.target,
+        "WBTC": wbtc.target,
+        "Swap": swap.target,
+        "FSCS": fscs.target
+    };
+    fs.writeFileSync("./contracts.json", JSON.stringify(contracts, null, 4));
+
+}
+
+main();

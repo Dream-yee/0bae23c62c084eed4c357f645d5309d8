@@ -1,7 +1,7 @@
 const ethers = require('ethers');
 
 const provider = new ethers.JsonRpcProvider("http://localhost:8545");
-const address = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const address = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 
 async function checkContract() {
     const code = await provider.getCode(address);

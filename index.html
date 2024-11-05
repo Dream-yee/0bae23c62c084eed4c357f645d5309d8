@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Trading Contract Interface</title>
+  <script src="script.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .section {
+      margin: 20px 0;
+    }
+    .section h2 {
+      margin-bottom: 10px;
+    }
+    .info-box, .input-box {
+      margin-bottom: 10px;
+    }
+    label {
+      display: inline-block;
+      width: 200px;
+      font-weight: bold;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Grid Trading Contract Interface</h1>
+
+  <!-- 1. 合約持有的 asset 和 target 數量 -->
+  <div class="section" id="contractHoldings">
+    <h2>合約持有的資產</h2>
+    <div class="info-box">
+      <label>合約持有的 Asset 數量：</label>
+      <span id="contractAsset">0</span>
+    </div>
+    <div class="info-box">
+      <label>合約持有的 Target 數量：</label>
+      <span id="contractTarget">0</span>
+    </div>
+  </div>
+
+  <!-- 2. 使用者持有的 asset 數量 -->
+  <div class="section" id="userHoldings">
+    <h2>使用者持有的資產</h2>
+    <div class="info-box">
+      <label>使用者持有的 Asset 數量：</label>
+      <span id="userAsset">0</span>
+    </div>
+  </div>
+
+  <!-- 3. 使用者 address -->
+  <div class="section" id="userAddress">
+    <h2>使用者地址</h2>
+    <div class="info-box">
+      <label>使用者地址：</label>
+      <span id="userAddressDisplay">0x...</span>
+    </div>
+  </div>
+
+  <!-- 4. Asset 存入和提出 -->
+  <div class="section" id="assetTransfer">
+    <h2>資產管理</h2>
+    <div class="input-box">
+      <label for="assetAmount">資產數量：</label>
+      <input type="number" id="assetAmount" placeholder="輸入數量">
+    </div>
+    <button onclick="depositAsset()">存入合約</button>
+    <button onclick="withdrawAsset()">從合約提出</button>
+  </div>
+
+  <!-- 5. 呼叫交易和顯示交易訊號 -->
+  <div class="section" id="tradeExecution">
+    <h2>交易操作</h2>
+    <button onclick="executeTrade()">執行交易</button>
+    <div class="info-box">
+      <label>Sell Signal：</label>
+      <span id="sellSignal">False</span>
+    </div>
+    <div class="info-box">
+      <label>Buy Signal：</label>
+      <span id="buySignal">False</span>
+    </div>
+    <div class="info-box">
+      <label>需要交易：</label>
+      <span id="tradeCondition">否</span>
+    </div>
+  </div>
+
+  <!-- 6. 變更 Target 價值 -->
+  <div class="section" id="targetAdjustment">
+    <h2>調整 Target 價值</h2>
+    <div class="input-box">
+      <label for="newTargetValue">新的 Target 價值：</label>
+      <input type="number" id="newTargetValue" placeholder="輸入新的 Target 價值">
+    </div>
+    <button onclick="updateTargetValue()">變更 Target 價值</button>
+  </div>
+
+</body>
+</html>
