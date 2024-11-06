@@ -28,6 +28,8 @@ async function main() {
     console.log("Deploying fakeSwap");
     const swap = await ethers.deployContract("contracts/fakeSwap.sol:fakeSwap", [usdt.target,wbtc.target]);
     console.log("Swap address:", swap.target);
+    //變更swap的價格
+    await swap.setPrice(50);
 
     console.log("Deploying FSCS");
     const bottom = 10;

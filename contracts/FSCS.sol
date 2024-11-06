@@ -24,18 +24,18 @@ contract FSCS is ERC4626{
     {
         _target = target_;
         _swap = swap_;
-        previousLevel = getTokenLevel();
-        buyQty = new uint[](GRID_NUM);
         BOTTOM = bottom;
         REFERENCE = ref;
         GRID_NUM = gridNum;
+        buyQty = new uint[](gridNum+1);
+        previousLevel = getTokenLevel();
     }
     function getTokenLevel()view public returns(uint)
     {
         uint nowPrice = getTokenPrice(1);
         if(nowPrice >= REFERENCE)return GRID_NUM; //如果現在的價格高於REFERENCE就不做事,i.e.不買
         if(nowPrice < BOTTOM)return 0; //如果現在的價格低於BOTTOM就不做事,i.e.不賣
-        return GRID_NUM*(nowPrice-BOTTOM)/(REFERENCE - GRID_NUM); //目前位於的網格位置 
+        return GRID_NUM*(nowPrice-BOTTOM)/(REFERENCE - BOTTOM); //目前位於的網格位置 
     }
     function getTokenPrice(uint amount ) view public returns (uint)
     {
@@ -82,22 +82,26 @@ contract FSCS is ERC4626{
     function makeTransaction() public
     {
         uint level = getTokenLevel();
-        if(level > previousLevel)
+        if(level == previousLevel)return;
+        if(level < previousLevel)
         {
-            uint amount = buySignal()*totalAssets()/GRID_NUM/getTokenPrice(1);
+            uint buySize = buySignal();
+            uint amount = totalAssets()/GRID_NUM;
+            uint price = getTokenPrice(1);
             if(amount != 0)
             {
                 for(uint i = level+1; i <= previousLevel; i++)
                 {
                     if(buyQty[i] == 0)
                     {
-                        buyQty[i] = amount;
+                        buyQty[i] = amount/price;
                     }
                 }
-                _swap.swap(amount);
+                IERC20(ERC4626.asset()).approve(address(_swap),amount*buySize);
+                _swap.swap(amount*buySize);
             }
         }
-        else if(level < previousLevel)
+        else if(level > previousLevel)
         {
             uint amount = sellSignal();
             if(amount != 0)
@@ -109,9 +113,14 @@ contract FSCS is ERC4626{
                         buyQty[level] = 0;
                     }
                 }
+                _target.approve(address(_swap),amount);
                 _swap.swapBack(amount);
             }
         }
         previousLevel = level;
+    }
+    function target() view public returns(address)
+    {
+        return address(_target);
     }
 }
