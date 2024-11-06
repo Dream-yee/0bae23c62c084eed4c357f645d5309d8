@@ -44,7 +44,7 @@ async function initContracts() {
             await res.wait();
         },
         async withdraw(amount, account) {
-            await fscs.connect(account).withdraw(amount, account);
+            await fscs.connect(account).withdraw(amount, account , account);
         },
         async getTokenLevel() {
             return await fscs.getTokenLevel();
