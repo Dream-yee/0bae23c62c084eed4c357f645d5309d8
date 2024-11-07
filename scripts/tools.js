@@ -53,6 +53,10 @@ async function initContracts() {
         {
             return await fscs.asset();
         },
+        async getAccounts() {
+            const provider = new ethers.JsonRpcProvider("http://localhost:8545");
+            return await provider.listAccounts();
+        }
     };
 }
 

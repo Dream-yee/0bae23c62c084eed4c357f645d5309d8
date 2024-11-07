@@ -13,7 +13,7 @@ async function main() {
     for(const account of accounts)
     {
         await usdt.connect(account).approve(fscsAddress,1000000000);
-        var res = await fscs.connect(account).deposit(1000000000,account);
+        let res = await fscs.connect(account).deposit(1000000000,account);
         res.wait();
         console.log("Deposit successful");
     }
