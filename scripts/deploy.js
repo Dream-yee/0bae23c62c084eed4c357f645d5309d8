@@ -38,8 +38,10 @@ async function main() {
     const fscs = await ethers.deployContract("FSCS", [usdt.target,wbtc.target,swap.target, bottom, reference, grid]);
     console.log("FSCS address:", fscs.target);
     
+    const test = await ethers.deployContract("DataConsumerV3");
     //將合約地址寫入json文件
     let contracts = {
+        "TEST": test.target,
         "USDT": usdt.target,
         "WBTC": wbtc.target,
         "Swap": swap.target,

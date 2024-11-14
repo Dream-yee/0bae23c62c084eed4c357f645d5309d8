@@ -14,6 +14,9 @@ async function initContracts() {
     const swapAddress = address["Swap"];
     const swap = await (await ethers.getContractFactory("contracts/fakeSwap.sol:fakeSwap")).attach(swapAddress);
 
+    const testAddress = address["TEST"];
+    const test = await (await ethers.getContractFactory("DataConsumerV3")).attach(testAddress);
+
     return {
         fscsAddress,
         fscs,
@@ -23,6 +26,8 @@ async function initContracts() {
         wbtc,
         swapAddress,
         swap,
+        testAddress,
+        test,
         async setPrice(price) {
             await swap.setPrice(price);
         },
@@ -56,7 +61,10 @@ async function initContracts() {
         async getAccounts() {
             const provider = new ethers.JsonRpcProvider("http://localhost:8545");
             return await provider.listAccounts();
-        }
+        },
+        async getData() {
+            return await test.getChainlinkDataFeedLatestAnswer();
+        },
     };
 }
 

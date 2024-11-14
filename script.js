@@ -53,7 +53,6 @@ async function updateBalance() {
         row.insertCell().innerText = account.address; //填入地址
         row.insertCell().innerText = account.usdt; //填入USDT餘額
         row.insertCell().innerText = account.fscs; //填入FSCS餘額
-        row.insertCell().innerText = account.wbtc; //填入WBTC餘額
     }
     //更新fscs持有的資產
     document.getElementById("fscsAsset").innerText = await usdt.balanceOf(fscsAddress);
@@ -133,14 +132,7 @@ async function getAccounts() {
             address: account.address,
             usdt: await usdt.balanceOf(account),
             fscs: await fscs.balanceOf(account),
-            wbtc: await wbtc.balanceOf(account)
         });
     }
-    accounts.push({
-        address: "swap",
-        usdt: await usdt.balanceOf(swapAddress),
-        fscs: await fscs.balanceOf(swapAddress),
-        wbtc: await wbtc.balanceOf(swapAddress)
-    });
     return accounts;
 }
