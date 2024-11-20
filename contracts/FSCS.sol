@@ -1,15 +1,8 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
-contract fakeSwap{
-    function swapBack(uint amount) public {
-    }
-    function swap(uint amount) public {
-    }
-    function getPrice() view public returns (uint) {
-    }
-}
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 contract FSCS is ERC4626{
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
@@ -17,11 +10,11 @@ contract FSCS is ERC4626{
     uint immutable GRID_NUM;           //網格數
     uint[] buyQty;                     //買入的數量
     uint previousLevel;                //上一次的網格位置
-    fakeSwap immutable _swap;          //交易合約
-    constructor(IERC20 asset_ , IERC20 target_ ,fakeSwap swap_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(asset_)
+    AggregatorV3Interface internal priceFeed;
+    constructor(IERC20 asset_ , IERC20 target_ ,address _priceFeed , uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(asset_)
     {
         _target = target_;
-        _swap = swap_;
+        priceFeed = AggregatorV3Interface(_priceFeed);
         BOTTOM = bottom;
         REFERENCE = ref;
         GRID_NUM = gridNum;
@@ -37,7 +30,8 @@ contract FSCS is ERC4626{
     }
     function getTokenPrice(uint amount ) view public returns (uint)
     {
-        return amount*_swap.getPrice();
+        (, int price, , , ) = priceFeed.latestRoundData();
+        return uint(price)*amount;
     }
     function totalAssets()view public override returns (uint)
     {
@@ -78,8 +72,6 @@ contract FSCS is ERC4626{
                         totalAmount += buyQty[i];
                     }
                 }
-                IERC20(ERC4626.asset()).approve(address(_swap),totalAmount*price);
-                _swap.swap(totalAmount*price);
             }
         }
         else if(level > previousLevel) //賣出
@@ -95,8 +87,6 @@ contract FSCS is ERC4626{
             }
             if(totalAmount != 0)
             {
-                _target.approve(address(_swap),totalAmount);
-                _swap.swapBack(totalAmount);
             }
         }
         previousLevel = level;

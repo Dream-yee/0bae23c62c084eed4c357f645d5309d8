@@ -11,11 +11,16 @@ async function initContracts() {
     const wbtcAddress = address["WBTC"];
     const wbtc = await (await ethers.getContractFactory("fakeWBTC")).attach(wbtcAddress);
 
-    const swapAddress = address["Swap"];
-    const swap = await (await ethers.getContractFactory("contracts/fakeSwap.sol:fakeSwap")).attach(swapAddress);
+    const mockAddress = address["MockV3Aggregator"];
+    const mock = await (await ethers.getContractFactory("MockChainlink")).attach(mockAddress);
 
-    const testAddress = address["TEST"];
-    const test = await (await ethers.getContractFactory("DataConsumerV3")).attach(testAddress);
+    const chainlinkAddress = address["Chainlink"];
+    const abi = [
+        "function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80)"
+    ];
+
+    // Connect to the price feed contract
+    const chainlink = await ethers.getContractAt(abi, chainlinkAddress);
 
     return {
         fscsAddress,
@@ -24,15 +29,13 @@ async function initContracts() {
         usdt,
         wbtcAddress,
         wbtc,
-        swapAddress,
-        swap,
-        testAddress,
-        test,
+        chainlinkAddress,
+        chainlink,
         async setPrice(price) {
-            await swap.setPrice(price);
+            await mock.updateAnswer(price);
         },
         async getPrice() {
-            return await swap.getPrice();
+            return await fscs.getTokenPrice(1);
         },
         async buySignal() {
             return await fscs.buySignal();
@@ -49,13 +52,12 @@ async function initContracts() {
             await res.wait();
         },
         async withdraw(amount, account) {
-            await fscs.connect(account).withdraw(amount, account , account);
+            await fscs.connect(account).withdraw(amount, account, account);
         },
         async getTokenLevel() {
             return await fscs.getTokenLevel();
         },
-        async asset()
-        {
+        async asset() {
             return await fscs.asset();
         },
         async getAccounts() {
@@ -63,7 +65,7 @@ async function initContracts() {
             return await provider.listAccounts();
         },
         async getData() {
-            return await test.getChainlinkDataFeedLatestAnswer();
+            return await mock.latestRoundData();
         },
     };
 }

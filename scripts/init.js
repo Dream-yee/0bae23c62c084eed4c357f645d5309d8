@@ -3,15 +3,11 @@ const address = require("../contracts.json");
 
 async function distributeToken() {
     const signer = await ethers.provider.getSigner();
-    //先給swap wBTC
     const address = require("../contracts.json");
-    const swapAddress = address["Swap"];
-    const swap = await (await ethers.getContractFactory("contracts/fakeSwap.sol:fakeSwap")).attach(swapAddress);
     const wbtcAddress = address["WBTC"];
     const wbtc = await (await ethers.getContractFactory("fakeWBTC")).attach(wbtcAddress);
-    await wbtc.transfer(swapAddress, 10000000000000);
 
-    //將usdt 分配給使用者，以及swap合約
+    //將usdt 分配給使用者
     const usdtAddress = address["USDT"];
     const usdt = await (await ethers.getContractFactory("fakeUSDT")).attach(usdtAddress);
     const provider = new ethers.JsonRpcProvider("http://localhost:8545");
@@ -20,7 +16,6 @@ async function distributeToken() {
     {
         await usdt.transfer(accounts[i].address, 100000000000000);
     }
-    await usdt.transfer(swapAddress, 10000000000000);
 }
 
 async function mint() {

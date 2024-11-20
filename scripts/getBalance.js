@@ -19,9 +19,6 @@ async function main() {
     {
         console.log(account.address,"  ", await usdt.balanceOf(account.address), "  ", await fscs.balanceOf(account.address), "  ", await wbtc.balanceOf(account.address));
     }
-    const swapAddress = address["Swap"];
-    console.log("swap ", await usdt.balanceOf(swapAddress), "  ", await fscs.balanceOf(swapAddress), "  ", await wbtc.balanceOf(swapAddress));
-    console.log("fscs ", await usdt.balanceOf(fscsAddress), "  ", await fscs.balanceOf(fscsAddress), "  ", await wbtc.balanceOf(fscsAddress));
 }
 
 // 運行主函數
