@@ -11,16 +11,23 @@ async function initContracts() {
     const wbtcAddress = address["WBTC"];
     const wbtc = await (await ethers.getContractFactory("fakeWBTC")).attach(wbtcAddress);
 
-    const mockAddress = address["MockV3Aggregator"];
-    const mock = await (await ethers.getContractFactory("MockChainlink")).attach(mockAddress);
+    const curveAddress = address["CurvePool"];
+    const curveAbi = [
+        "function last_prices(uint256) external view returns (uint256)",
+        "function exchange(uint256, uint256, uint256, uint256) external payable returns (uint256)",
+    ];
+    const curve = await ethers.getContractAt(curveAbi, curveAddress);
+
+    // const mockAddress = address["MockV3Aggregator"];
+    // const mock = await (await ethers.getContractFactory("MockChainlink")).attach(mockAddress);
 
     const chainlinkAddress = address["Chainlink"];
-    const abi = [
+    const chainlinkAbi = [
         "function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80)"
     ];
 
     // Connect to the price feed contract
-    const chainlink = await ethers.getContractAt(abi, chainlinkAddress);
+    const chainlink = await ethers.getContractAt(chainlinkAbi, chainlinkAddress);
 
     return {
         fscsAddress,
@@ -31,11 +38,13 @@ async function initContracts() {
         wbtc,
         chainlinkAddress,
         chainlink,
+        curveAddress,
+        curve,
         async setPrice(price) {
             await mock.updateAnswer(price);
         },
         async getPrice() {
-            return await fscs.getTokenPrice(1);
+            return await fscs.getTokenPrice();
         },
         async buySignal() {
             return await fscs.buySignal();
@@ -47,8 +56,9 @@ async function initContracts() {
             await fscs.makeTransaction();
         },
         async deposit(amount, account) {
-            await usdt.connect(account).approve(fscsAddress, amount);
-            const res = await fscs.connect(account).deposit(amount, account);
+            const signer = await ethers.getSigner(account);
+            await usdt.connect(signer).approve(fscsAddress, amount);
+            const res = await fscs.connect(signer).deposit(amount, account);
             await res.wait();
         },
         async withdraw(amount, account) {
