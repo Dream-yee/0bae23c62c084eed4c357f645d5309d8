@@ -14,7 +14,7 @@ async function distributeToken() {
     const [deployer] = await ethers.getSigners();
     const address = require("../contracts.json"); //讀取合約地址
     const usdtAmount = ethers.parseUnits("1000000000", 6); //1e9個usdt
-    const wbtcAmount = ethers.parseUnits("9000", 8); //1e9個wbtc
+    const wbtcAmount = ethers.parseUnits("9000", 8); //9e3個wbtc
 
     //將usdt 分配給使用者
     const usdtAddress = address["USDT"];
@@ -31,7 +31,7 @@ async function distributeToken() {
     const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
     await network.provider.send("hardhat_setBalance", [
         WBTC_WHALE,
-        "0x56BC75E2D63100000", // 100 ETH in hex
+        "0x56BC75E2D631000000", // 100 ETH in hex
     ]);
     wbtc.connect(wbtcHolderSigner).transfer(deployer, wbtcAmount);
 }

@@ -8,11 +8,13 @@ interface ICurvePool {
         int128 j, // 到代幣索引
         uint256 dx, // 輸入代幣數量
         uint256 min_dy // 最小輸出代幣數量
-    ) external;
+    ) external payable;
     function last_prices(uint256 k) external view returns (uint256);
 }
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 contract FSCS is ERC4626{
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
@@ -21,6 +23,11 @@ contract FSCS is ERC4626{
     ICurvePool immutable curvePool;
     uint[] buyQty;                     //買入的數量
     uint previousLevel;                //上一次的網格位置
+    event buy(uint amount,uint price , uint getAmount);
+    event sell(uint amount,uint price , uint getAmount);
+    event debug(uint level,uint previousLevel);
+    event ExchangeSuccess(uint256 getAmount);
+    event ExchangeFailed(string reason);
     constructor(IERC20 asset_ , IERC20 target_ ,ICurvePool curvePool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(asset_)
     {
         _target = target_;
@@ -62,18 +69,26 @@ contract FSCS is ERC4626{
     {
         return getTokenLevel() > previousLevel;
     }
-    function makeTransaction() public
+    function targetAddress() view public returns(address)
     {
+        return address(_target);
+    }
+    function makeTransaction() public 
+    {
+        console.log("makeTransaction");
         uint level = getTokenLevel();
+        console.log("level:",level);
         if(level == previousLevel)return;
         if(level < previousLevel) //買入
         {
-            uint price = getTokenPrice();
-            uint amount = assetBalance()/previousLevel/price;
+            uint price = getTokenPrice(); 
+            uint amount = assetBalance()*10**28/previousLevel/price; //10**28是為了避免小數點
             uint totalAmount = 0;
+            console.log("amount:",amount);
             if(amount != 0)
             {
-                for(uint i = level+1; i <= previousLevel; i++)
+                console.log("amount:",amount);
+                for(uint i = level; i < previousLevel; i++)
                 {
                     if(buyQty[i] == 0)
                     {
@@ -81,14 +96,20 @@ contract FSCS is ERC4626{
                         totalAmount += buyQty[i];
                     }
                 }
-                ERC20(ERC4626.asset()).approve(address(curvePool),totalAmount);
-                curvePool.exchange(0,1,totalAmount*price,0);
+                require(totalAmount*price/(10**28) != 0,"totalAmount is 0");
+                console.log("totalAmount:",totalAmount);
+                console.log("totalAmount:",totalAmount*price/(10**28));
+                SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), totalAmount*price/(10**28));
+                console.log("totalAmount:",totalAmount*price/(10**28));
+                console.log("totalAmount:",totalAmount*price/(10**28));
+                curvePool.exchange(0, 1, totalAmount*price/10**28, 0);
+                console.log("totalAmount:",totalAmount*price/(10**28));
             }
         }
         else if(level > previousLevel) //賣出
         {
             uint totalAmount = 0;
-            for(uint i = previousLevel + 1;i <= level; i++)
+            for(uint i = previousLevel ; i < level; i++)
             {
                 if(buyQty[i] != 0)
                 {
@@ -103,9 +124,7 @@ contract FSCS is ERC4626{
             }
         }
         previousLevel = level;
-    }
-    function target() view public returns(address)
-    {
-        return address(_target);
+        console.log("totalAmount:");
+        return;
     }
 }

@@ -33,14 +33,16 @@ async function main() {
     // console.log("MockV3Aggregator address:", mockV3Aggregator.target);
 
     // 部署 FSCS 合約
+    const abiPath = './artifacts/contracts/FSCS.sol/FSCS.json';
+    const artifact = JSON.parse(fs.readFileSync(abiPath, 'utf8'));
     console.log("Deploying FSCS");
     const bottom = ethers.parseUnits("10000", 18);
     const reference = ethers.parseUnits("200000", 18);
     const grid = 7;
     const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
     const wbtcAddress = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
-    const chainlinkAddress = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
-    const curvePoolAddress = "0xf5f5B97624542D72A9E06f04804Bf81baA15e2B4";
+    // const chainlinkAddress = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
+    const curvePoolAddress = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
     const fscs = await ethers.deployContract("FSCS", [
         usdtAddress,
         wbtcAddress,
@@ -57,7 +59,6 @@ async function main() {
         "USDT": usdtAddress,
         "WBTC": wbtcAddress,
         "FSCS": fscs.target,
-        "Chainlink": chainlinkAddress,
         "CurvePool": curvePoolAddress,
     };
     fs.writeFileSync("./contracts.json", JSON.stringify(contracts, null, 4));

@@ -3,31 +3,25 @@ const address = require("../contracts.json");
 
 async function initContracts() {
     const fscsAddress = address["FSCS"];
-    const fscs = await (await ethers.getContractFactory("FSCS")).attach(fscsAddress);
+    const fscsAbi = require("../artifacts/contracts/FSCS.sol/FSCS.json").abi;
+    const fscs = await ethers.getContractAt(fscsAbi, fscsAddress);
 
     const usdtAddress = address["USDT"];
-    const usdt = await (await ethers.getContractFactory("fakeUSDT")).attach(usdtAddress);
+    const usdt = await ethers.getContractAt("IERC20", usdtAddress);
 
     const wbtcAddress = address["WBTC"];
-    const wbtc = await (await ethers.getContractFactory("fakeWBTC")).attach(wbtcAddress);
+    const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
 
     const curveAddress = address["CurvePool"];
     const curveAbi = [
         "function last_prices(uint256) external view returns (uint256)",
-        "function exchange(uint256, uint256, uint256, uint256) external payable returns (uint256)",
+        "function exchange(uint256, uint256, uint256, uint256) external payable",
+        "function price_scale(uint256) external view returns (uint256)",
+        "function gamma() external view returns (uint256)",
+        "function A() external view returns (uint256)",
+        "function is_killed() external view returns (bool)",
     ];
     const curve = await ethers.getContractAt(curveAbi, curveAddress);
-
-    // const mockAddress = address["MockV3Aggregator"];
-    // const mock = await (await ethers.getContractFactory("MockChainlink")).attach(mockAddress);
-
-    const chainlinkAddress = address["Chainlink"];
-    const chainlinkAbi = [
-        "function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80)"
-    ];
-
-    // Connect to the price feed contract
-    const chainlink = await ethers.getContractAt(chainlinkAbi, chainlinkAddress);
 
     return {
         fscsAddress,
@@ -36,13 +30,8 @@ async function initContracts() {
         usdt,
         wbtcAddress,
         wbtc,
-        chainlinkAddress,
-        chainlink,
         curveAddress,
         curve,
-        async setPrice(price) {
-            await mock.updateAnswer(price);
-        },
         async getPrice() {
             return await fscs.getTokenPrice();
         },
@@ -53,7 +42,9 @@ async function initContracts() {
             return await fscs.sellSignal();
         },
         async makeTransaction() {
-            await fscs.makeTransaction();
+            const tx = await fscs.makeTransaction();
+            const receipt = await tx.wait();
+            return receipt;
         },
         async deposit(amount, account) {
             const signer = await ethers.getSigner(account);
@@ -70,13 +61,31 @@ async function initContracts() {
         async asset() {
             return await fscs.asset();
         },
+        async target() {
+            return await fscs.targetAddress();
+        },
         async getAccounts() {
             const provider = new ethers.JsonRpcProvider("http://localhost:8545");
             return await provider.listAccounts();
         },
-        async getData() {
-            return await mock.latestRoundData();
+        async swap(amount, account) {
+            const signer = await ethers.getSigner(account);
+            await usdt.connect(signer).approve(curveAddress, amount);
+            await curve.connect(signer).exchange(0, 1, amount, 0);
         },
+        async swap(amount) {
+            await usdt.approve(curveAddress, amount);
+            await curve.exchange(0, 1, amount, 0);
+        },
+        async swapback(amount, account) {
+            const signer = await ethers.getSigner(account);
+            await wbtc.connect(signer).approve(curveAddress, amount);
+            await curve.connect(signer).exchange(1, 0, amount, 0);
+        },
+        async swapback(amount) {
+            await wbtc.approve(curveAddress, amount);
+            await curve.exchange(1, 0, amount, 0);
+        }
     };
 }
 
