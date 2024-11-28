@@ -13,6 +13,7 @@
     "@chainlink/hardhat-chainlink": "^0.0.4",
     "@openzeppelin/contracts": "^5.1.0",
     "@uniswap/v3-core": "^1.0.1",
+    "ethers": "^6.13.4",
     "hardhat": "^2.22.15"
   },
   "devDependencies": {

@@ -1,5 +1,4 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("@chainlink/hardhat-chainlink");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -14,8 +13,16 @@ module.exports = {
             },
         ],
     },
-    chainlink:
-    {
-        confirmations: 1,
-    }
+    networks: {
+        hardhat: {
+            forking: {
+                url: "https://eth-mainnet.g.alchemy.com/v2/5ibJR2xUNR2z1ludTzNgB19VCJjVceb6",
+                blockNumber: 21228016
+            },
+            blockGasLimit: 19021092026,
+            accounts: {
+                accountsBalance: "1000000000000000000000000",
+            },
+        },
+    },
 };
