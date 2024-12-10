@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 
 interface ICurvePool {
     function exchange(
-        int128 i, // 從代幣索引
-        int128 j, // 到代幣索引
+        uint256 i, // 從代幣索引
+        uint256 j, // 到代幣索引
         uint256 dx, // 輸入代幣數量
         uint256 min_dy // 最小輸出代幣數量
     ) external payable;
@@ -69,10 +69,18 @@ contract FSCS is ERC4626{
     {
         return getTokenLevel() > previousLevel;
     }
+    /************************************************************************************************
+     * to get address of target and curvePool
+     ************************************************************************************************/
     function targetAddress() view public returns(address)
     {
         return address(_target);
     }
+    function curvePoolAddress() view public returns(address)
+    {
+        return address(curvePool);
+    }
+
     function makeTransaction() public 
     {
         console.log("makeTransaction");
@@ -82,7 +90,7 @@ contract FSCS is ERC4626{
         if(level < previousLevel) //買入
         {
             uint price = getTokenPrice(); 
-            uint amount = assetBalance()*10**28/previousLevel/price; //10**28是為了避免小數點
+            uint amount = assetBalance()*10**20/previousLevel/price; //10**20是為了避免小數點
             uint totalAmount = 0;
             console.log("amount:",amount);
             if(amount != 0)
@@ -96,14 +104,13 @@ contract FSCS is ERC4626{
                         totalAmount += buyQty[i];
                     }
                 }
-                require(totalAmount*price/(10**28) != 0,"totalAmount is 0");
+                require(totalAmount*price/(10**20) != 0,"totalAmount is 0");
                 console.log("totalAmount:",totalAmount);
-                console.log("totalAmount:",totalAmount*price/(10**28));
-                SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), totalAmount*price/(10**28));
-                console.log("totalAmount:",totalAmount*price/(10**28));
-                console.log("totalAmount:",totalAmount*price/(10**28));
-                curvePool.exchange(0, 1, totalAmount*price/10**28, 0);
-                console.log("totalAmount:",totalAmount*price/(10**28));
+                console.log("totalAmount:",totalAmount*price/(10**20));
+                console.log("ERC4626 asset address:", ERC4626.asset());
+                SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), totalAmount*price/(10**20));
+                console.log("allowance:",IERC20(ERC4626.asset()).allowance(address(this),address(curvePool)));
+                curvePool.exchange(0, 1, totalAmount*price/(10**20), 0);
             }
         }
         else if(level > previousLevel) //賣出
@@ -117,10 +124,13 @@ contract FSCS is ERC4626{
                     buyQty[i] = 0;
                 }
             }
+            console.log("totalAmount:",totalAmount);
             if(totalAmount != 0)
             {
                 _target.approve(address(curvePool),totalAmount);
+                console.log("allowance:",_target.allowance(address(this),address(curvePool)));
                 curvePool.exchange(1,0,totalAmount,0);
+                console.log("totalAmount:",totalAmount);
             }
         }
         previousLevel = level;
