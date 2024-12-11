@@ -89,10 +89,9 @@ contract FSCS is ERC4626{
         if(level == previousLevel)return;
         if(level < previousLevel) //買入
         {
-            uint price = getTokenPrice(); 
-            uint amount = assetBalance()*10**20/previousLevel/price; //10**20是為了避免小數點
-            uint totalAmount = 0;
-            console.log("amount:",amount);
+            uint amount = assetBalance()/previousLevel; //10**20是為了避免小數點
+            uint cnt = 0;
+            uint targetBalance0 = targetBalance();
             if(amount != 0)
             {
                 console.log("amount:",amount);
@@ -100,17 +99,23 @@ contract FSCS is ERC4626{
                 {
                     if(buyQty[i] == 0)
                     {
-                        buyQty[i] = amount;
-                        totalAmount += buyQty[i];
+                        cnt += 1;
                     }
                 }
-                require(totalAmount*price/(10**20) != 0,"totalAmount is 0");
-                console.log("totalAmount:",totalAmount);
-                console.log("totalAmount:",totalAmount*price/(10**20));
-                console.log("ERC4626 asset address:", ERC4626.asset());
-                SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), totalAmount*price/(10**20));
+                require(cnt != 0,"totalAmount is 0");
+                SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), amount*cnt);
                 console.log("allowance:",IERC20(ERC4626.asset()).allowance(address(this),address(curvePool)));
-                curvePool.exchange(0, 1, totalAmount*price/(10**20), 0);
+                curvePool.exchange(0, 1, amount*cnt, 0);
+                uint dTargetBalance = targetBalance() - targetBalance0;
+                uint k = level;
+                for(uint j = 0 ; j < cnt; k++)
+                {
+                    if(buyQty[k] == 0)
+                    {
+                        buyQty[k] = (dTargetBalance+j)/cnt;
+                        j++;
+                    }
+                }
             }
         }
         else if(level > previousLevel) //賣出
