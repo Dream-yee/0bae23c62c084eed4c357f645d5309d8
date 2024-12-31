@@ -20,6 +20,7 @@ async function initContracts() {
         "function gamma() external view returns (uint256)",
         "function A() external view returns (uint256)",
         "function is_killed() external view returns (bool)",
+        "function fee() external view returns (uint256)",
         "event TokenExchange(address indexed, uint256, uint256, uint256, uint256)"
     ];
     const curve = await ethers.getContractAt(curveAbi, curveAddress);
@@ -54,7 +55,10 @@ async function initContracts() {
             await res.wait();
         },
         async withdraw(amount, account) {
-            await fscs.connect(account).withdraw(amount, account, account);
+            const signer = await ethers.getSigner(account);
+            const tx = await fscs.connect(signer).withdraw(amount, signer, signer);
+            const receipt = await tx.wait();
+            return receipt;
         },
         async getTokenLevel() {
             return await fscs.getTokenLevel();
