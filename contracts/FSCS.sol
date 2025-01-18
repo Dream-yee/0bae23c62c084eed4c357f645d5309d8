@@ -164,7 +164,7 @@ contract FSCS is ERC4626{
             uint256 dx = xp0*xp1/(xp0-balance*1000000000000) - xp1 + 1;
             dx = dx*10**18/10000000000/curvePool.price_scale(0) + 1;
             _target.approve(address(curvePool),dx);
-            curvePool.exchange(1,0,dx,balance); //滑價了，八成是fee
+            curvePool.exchange(1,0,dx,balance); 
         }
         SafeERC20.safeTransfer(IERC20(ERC4626.asset()), receiver, assets);
 
