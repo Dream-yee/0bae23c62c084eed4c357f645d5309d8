@@ -34,6 +34,9 @@ contract FSCS is ERC4626{
         buyQty = new uint[](gridNum+1);
         previousLevel = getTokenLevel();
     }
+    /************************************************************************************************
+     * view function
+     ************************************************************************************************/
     function getTokenLevel()view public returns(uint)
     {
         uint nowPrice = getTokenPrice();
@@ -41,9 +44,6 @@ contract FSCS is ERC4626{
         if(nowPrice < BOTTOM)return 0;                            //如果現在的價格低於BOTTOM就不做事,i.e.不賣
         return GRID_NUM*(nowPrice-BOTTOM)/(REFERENCE - BOTTOM);   //目前位於的網格位置 
     }
-    /************************************************************************************************
-     * view function
-     ************************************************************************************************/
     function getTokenPrice() view public returns (uint)
     {
         return curvePool.last_prices(0);
