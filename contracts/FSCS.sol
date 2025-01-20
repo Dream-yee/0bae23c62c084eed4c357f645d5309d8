@@ -18,9 +18,12 @@ interface ICurvePool {
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract FSCS is ERC4626{
-    uint256 constant assetNo = 1;      //資產的索引
-    uint256 constant targetNo = 0;     //交易標的的索引
+    uint256 constant assetNo = 0;      //資產的索引
+    uint256 constant targetNo = 1;     //交易標的的索引
     uint256 constant FEE_PRECISION = 10**10; //curve內部的常數
+    uint256 constant PREC_I = 10**12;      //curve內部的常數
+    uint256 constant PREC_J = 10**10;     //curve內部的常數
+    uint256 constant PRECISION = 10**18; //curve內部的常數
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
     uint immutable BOTTOM;             //地
@@ -95,7 +98,7 @@ contract FSCS is ERC4626{
         if(level == previousLevel)return;
         if(level < previousLevel) //買入
         {
-            uint amount = assetBalance()/previousLevel; //10**20是為了避免小數點
+            uint amount = assetBalance()/previousLevel; 
             uint cnt = 0;
             uint targetBalance0 = targetBalance();
             if(amount != 0)
@@ -164,12 +167,29 @@ contract FSCS is ERC4626{
         uint balance = assetBalance();
         if(assets > balance)
         {
-            balance = assets - balance;
+            balance = assets - balance; // dy
             uint xp0 = curvePool.balances(assetNo);
             uint xp1 = curvePool.balances(targetNo);
-            xp0 = FEE_PRECISION*xp0/(FEE_PRECISION - curvePool.fee()) + 1; //revert  dy -= self._fee(xp) * dy / 10**10
-            //這個計算過程要再確認
-            uint256 dx = xp0*xp1/(xp0-balance) - xp1 + 1;
+            balance = FEE_PRECISION*balance/(FEE_PRECISION - curvePool.fee()) + 1; //revert  dy -= self._fee(xp) * dy / 10**10
+            //當存量遠離平衡點時，定積會是lower_bound
+            //當存量接近平衡點時，定和會是lower_bound
+            uint256 dx = xp0*xp1/(xp0-balance) - xp1 + 1; //定積
+            uint256 dx2 = balance * PREC_I; 
+            if(assetNo == 0)
+            {
+                dx2 = dx2 * PRECISION / curvePool.price_scale(targetNo-1);
+            }
+            else if(targetNo == 0)
+            {
+                dx2 = dx2 * curvePool.price_scale(assetNo-1);
+                dx2 /= PRECISION; //之所以拆成兩段,是因為弄成一段時編譯器無法發現asset > 0
+            }
+            else
+            {
+                dx2 = dx2 * curvePool.price_scale(assetNo-1) / curvePool.price_scale(targetNo-1);
+            }
+            dx2 = dx2 / PREC_J + 1;
+            if(dx2 > dx)dx = dx2; //取最大值
             _target.approve(address(curvePool),dx);
             curvePool.exchange(targetNo,assetNo,dx,balance); 
         }
