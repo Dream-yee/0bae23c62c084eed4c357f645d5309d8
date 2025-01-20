@@ -18,8 +18,8 @@ interface ICurvePool {
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract FSCS is ERC4626{
-    uint256 constant assetNo = 1;      //資產的索引
-    uint256 constant targetNo = 0;     //交易標的的索引
+    uint256 constant assetNo = 0;      //資產的索引
+    uint256 constant targetNo = 1;     //交易標的的索引
     uint256 constant FEE_PRECISION = 10**10; //curve內部的常數
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
