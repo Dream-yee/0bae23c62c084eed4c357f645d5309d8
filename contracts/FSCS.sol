@@ -17,6 +17,9 @@ interface ICurvePool {
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract FSCS is ERC4626{
+    uint256 constant assetNo = 0;      //資產的索引
+    uint256 constant targetNo = 1;     //交易標的的索引
+    uint256 constant FEE_PRECISION = 10**10; //curve內部的常數
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
     uint immutable BOTTOM;             //地
@@ -46,7 +49,7 @@ contract FSCS is ERC4626{
     }
     function getTokenPrice() view public returns (uint)
     {
-        return curvePool.last_prices(0);
+        return curvePool.last_prices(targetNo - 1); //最近一次交易的價格
     }
     function totalAssets()view public override returns (uint)
     {
@@ -99,7 +102,7 @@ contract FSCS is ERC4626{
                 }
                 require(cnt != 0,"totalAmount is 0");
                 SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), amount*cnt);
-                curvePool.exchange(0, 1, amount*cnt, 0);
+                curvePool.exchange(assetNo, targetNo, amount*cnt, 0);
                 uint dTargetBalance = targetBalance() - targetBalance0;
                 uint k = level;
                 for(uint j = 0 ; j < cnt; k++)
@@ -126,7 +129,7 @@ contract FSCS is ERC4626{
             if(totalAmount != 0)
             {
                 _target.approve(address(curvePool),totalAmount);
-                curvePool.exchange(1,0,totalAmount,0);
+                curvePool.exchange(targetNo,assetNo,totalAmount,0);
             }
         }
         previousLevel = level;
@@ -155,16 +158,13 @@ contract FSCS is ERC4626{
         if(assets > balance)
         {
             balance = assets - balance;
-            uint xp0 = curvePool.balances(0);
-            uint xp1 = curvePool.balances(1);
-            xp0 = 10**10*xp0/(10**10 - curvePool.fee()) + 1;
-            xp0 *= 1000000000000;
-            xp1 = xp1 * curvePool.price_scale(0) * 10000000000 / 10**18 + 1;
-
-            uint256 dx = xp0*xp1/(xp0-balance*1000000000000) - xp1 + 1;
-            dx = dx*10**18/10000000000/curvePool.price_scale(0) + 1;
+            uint xp0 = curvePool.balances(assetNo);
+            uint xp1 = curvePool.balances(targetNo);
+            xp0 = FEE_PRECISION*xp0/(FEE_PRECISION - curvePool.fee()) + 1; //revert  dy -= self._fee(xp) * dy / 10**10
+            //這個計算過程要再確認
+            uint256 dx = xp0*xp1/(xp0-balance) - xp1 + 1;
             _target.approve(address(curvePool),dx);
-            curvePool.exchange(1,0,dx,balance); 
+            curvePool.exchange(targetNo,assetNo,dx,balance); 
         }
         SafeERC20.safeTransfer(IERC20(ERC4626.asset()), receiver, assets);
 
