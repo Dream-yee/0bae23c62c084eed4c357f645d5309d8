@@ -44,8 +44,6 @@ async function main() {
     // const chainlinkAddress = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
     const curvePoolAddress = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
     const fscs = await ethers.deployContract("FSCS", [
-        usdtAddress,
-        wbtcAddress,
         curvePoolAddress,
         bottom,
         reference,

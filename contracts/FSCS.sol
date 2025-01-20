@@ -13,23 +13,24 @@ interface ICurvePool {
     function balances(uint256 index) external view returns (uint256);
     function price_scale(uint256 k) external view returns (uint256);
     function fee() external view returns (uint256);
+    function coins(uint256 index) external view returns (address);
 }
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract FSCS is ERC4626{
-    uint256 constant assetNo = 0;      //資產的索引
-    uint256 constant targetNo = 1;     //交易標的的索引
+    uint256 constant assetNo = 1;      //資產的索引
+    uint256 constant targetNo = 0;     //交易標的的索引
     uint256 constant FEE_PRECISION = 10**10; //curve內部的常數
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
     uint immutable BOTTOM;             //地
     uint immutable GRID_NUM;           //網格數
-    ICurvePool immutable curvePool;
+    ICurvePool immutable curvePool;    //curve的合約
     uint[] buyQty;                     //買入的數量
     uint previousLevel;                //上一次的網格位置
-    constructor(IERC20 asset_ , IERC20 target_ ,ICurvePool curvePool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(asset_)
+    constructor(ICurvePool curvePool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(IERC20(curvePool_.coins(assetNo)))
     {
-        _target = target_;
+        _target = IERC20(curvePool_.coins(targetNo));
         curvePool = curvePool_;
         BOTTOM = bottom;
         REFERENCE = ref;
@@ -49,7 +50,13 @@ contract FSCS is ERC4626{
     }
     function getTokenPrice() view public returns (uint)
     {
-        return curvePool.last_prices(targetNo - 1); //最近一次交易的價格
+        // last_price(k) 表示第k+1個代幣相對於第0個代幣的價格的10**18倍
+        // 這些if在編譯器優化下會被死碼移除
+        if(assetNo == 0)
+            return curvePool.last_prices(targetNo - 1); 
+        if(targetNo == 0)
+            return 10**36/curvePool.last_prices(assetNo - 1); 
+        return curvePool.last_prices(targetNo - 1)*10**18/curvePool.last_prices(assetNo - 1); 
     }
     function totalAssets()view public override returns (uint)
     {
