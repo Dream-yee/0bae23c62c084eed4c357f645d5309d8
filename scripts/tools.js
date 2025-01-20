@@ -20,6 +20,8 @@ async function initContracts() {
         "function gamma() external view returns (uint256)",
         "function A() external view returns (uint256)",
         "function is_killed() external view returns (bool)",
+        "function fee() external view returns (uint256)",
+        "event TokenExchange(address indexed, uint256, uint256, uint256, uint256)"
     ];
     const curve = await ethers.getContractAt(curveAbi, curveAddress);
 
@@ -53,7 +55,10 @@ async function initContracts() {
             await res.wait();
         },
         async withdraw(amount, account) {
-            await fscs.connect(account).withdraw(amount, account, account);
+            const signer = await ethers.getSigner(account);
+            const tx = await fscs.connect(signer).withdraw(amount, signer, signer);
+            const receipt = await tx.wait();
+            return receipt;
         },
         async getTokenLevel() {
             return await fscs.getTokenLevel();
@@ -68,7 +73,7 @@ async function initContracts() {
             const provider = new ethers.JsonRpcProvider("http://localhost:8545");
             return await provider.listAccounts();
         },
-        async swap(amount, account) {
+        async swapWAccount(amount, account) {
             const signer = await ethers.getSigner(account);
             await usdt.connect(signer).approve(curveAddress, amount);
             await curve.connect(signer).exchange(0, 1, amount, 0);
@@ -77,7 +82,7 @@ async function initContracts() {
             await usdt.approve(curveAddress, amount);
             await curve.exchange(0, 1, amount, 0);
         },
-        async swapback(amount, account) {
+        async swapbackWAccount(amount, account) {
             const signer = await ethers.getSigner(account);
             await wbtc.connect(signer).approve(curveAddress, amount);
             await curve.connect(signer).exchange(1, 0, amount, 0);

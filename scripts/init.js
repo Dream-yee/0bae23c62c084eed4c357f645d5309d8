@@ -13,7 +13,7 @@ async function distributeToken() {
     //一些重要的常數
     const [deployer] = await ethers.getSigners();
     const address = require("../contracts.json"); //讀取合約地址
-    const usdtAmount = ethers.parseUnits("1000000000", 6); //1e9個usdt
+    const usdtAmount = ethers.parseUnits("100000000", 6); //1e9個usdt
     const wbtcAmount = ethers.parseUnits("9000", 8); //9e3個wbtc
 
     //將usdt 分配給使用者
@@ -23,7 +23,7 @@ async function distributeToken() {
     const provider = new ethers.JsonRpcProvider("http://localhost:8545");
     const accounts = await provider.listAccounts();
     for (let i = 1; i < 5; i++) {
-        await usdt.connect(deployer).transfer(accounts[i].address, 10000000000000);
+        await usdt.connect(deployer).transfer(accounts[i].address, 1000000000000);
         console.log("分配給" + accounts[i].address);
     }
 
@@ -46,8 +46,8 @@ async function mint() {
     const provider = new ethers.JsonRpcProvider("http://localhost:8545");
     const accounts = await provider.listAccounts();
     for (let i = 0; i < 5; i++) {
-        await usdt.connect(accounts[i]).approve(fscsAddress, 1000000000000);
-        let res = await fscs.connect(accounts[i]).deposit(1000000000000, accounts[i].address);
+        await usdt.connect(accounts[i]).approve(fscsAddress, 100000000000);
+        let res = await fscs.connect(accounts[i]).deposit(100000000000, accounts[i].address);
         res.wait();
     }
 }

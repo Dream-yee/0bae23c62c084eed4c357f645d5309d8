@@ -4,14 +4,13 @@ require("@nomicfoundation/hardhat-toolbox");
 module.exports = {
     //這是要使用多種編譯器版本
     solidity: {
-        compilers: [
-            {
-                version: "0.8.27",
-            },
-            {
-                version: "0.5.16",
-            },
-        ],
+        version: "0.8.27",
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 200
+            }
+        }
     },
     networks: {
         hardhat: {
