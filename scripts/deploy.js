@@ -39,10 +39,10 @@ async function main() {
     const bottom = ethers.parseUnits("10000", 18);
     const reference = ethers.parseUnits("200000", 18);
     const grid = 7;
-    const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-    const wbtcAddress = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+    const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+    const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
     // const chainlinkAddress = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
-    const curvePoolAddress = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
+    const curvePoolAddress = "0x960ea3e3C7FB317332d990873d354E18d7645590";
     const fscs = await ethers.deployContract("FSCS", [
         curvePoolAddress,
         bottom,

@@ -3,8 +3,8 @@ const address = require("../contracts.json");
 
 async function distributeToken() {
     //找到巨鯨
-    const USDT_WHALE = "0xF977814e90dA44bFA03b6295A0616a897441aceC"; //這是幣安的錢包
-    const WBTC_WHALE = "0xa3A7B6F88361F48403514059F1F16C8E78d60EeC";
+    const USDT_WHALE = "0xF977814e90dA44bFA03b6295A0616a897441aceC"; //452,552,724.53 USDT
+    const WBTC_WHALE = "0x078f358208685046a11C85e8ad32895DED33A249"; //Aave: aWBTC Token V3, 2699 WBTC
     await network.provider.send("hardhat_impersonateAccount", [USDT_WHALE]);
     const usdtHolderSigner = await ethers.getSigner(USDT_WHALE);
     await network.provider.send("hardhat_impersonateAccount", [WBTC_WHALE]);
@@ -13,8 +13,8 @@ async function distributeToken() {
     //一些重要的常數
     const [deployer] = await ethers.getSigners();
     const address = require("../contracts.json"); //讀取合約地址
-    const usdtAmount = ethers.parseUnits("100000000", 6); //1e9個usdt
-    const wbtcAmount = ethers.parseUnits("9000", 8); //9e3個wbtc
+    const usdtAmount = ethers.parseUnits("40000000", 6); //4e8個usdt
+    const wbtcAmount = ethers.parseUnits("2000", 8); //2e3個wbtc
 
     //將usdt 分配給使用者
     const usdtAddress = address["USDT"];
@@ -23,7 +23,7 @@ async function distributeToken() {
     const provider = new ethers.JsonRpcProvider("http://localhost:8545");
     const accounts = await provider.listAccounts();
     for (let i = 1; i < 5; i++) {
-        await usdt.connect(deployer).transfer(accounts[i].address, 1000000000000);
+        await usdt.connect(deployer).transfer(accounts[i].address, 1000_000_000_000);
         console.log("分配給" + accounts[i].address);
     }
 

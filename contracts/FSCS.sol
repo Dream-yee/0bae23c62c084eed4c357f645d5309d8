@@ -26,9 +26,9 @@ contract FSCS is ERC4626{
     uint256 constant PREC_J = 10**10;      //續上，應該是1e18/decimals()
     uint256 constant PRECISION = 10**18; //curve內部的常數
     IERC20 immutable _target;          //交易標的
-    uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
-    uint immutable BOTTOM;             //地
-    uint immutable GRID_NUM;           //網格數
+    uint immutable public REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
+    uint immutable public BOTTOM;             //地
+    uint immutable public GRID_NUM;           //網格數
     ICurvePool immutable curvePool;    //curve的合約
     uint[] buyQty;                     //買入的數量
     uint previousLevel;                //上一次的網格位置
@@ -73,14 +73,6 @@ contract FSCS is ERC4626{
     function targetBalance()view public returns (uint)
     {
         return _target.balanceOf(address(this));
-    }
-    function buySignal()view public returns(bool)
-    {
-        return getTokenLevel() < previousLevel;
-    }
-    function sellSignal()view public returns(bool)
-    {
-        return getTokenLevel() > previousLevel;
     }
     function targetAddress() view public returns(address)
     {

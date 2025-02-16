@@ -2,9 +2,9 @@
 async function main() {
     const tools = await require("./tools.js")
     console.log(tools);
-    while (await tools.getTokenLevel() < 7) await tools.swap(50000000000n);
+    while (await tools.getTokenLevel() < 7) await tools.swap(5000000000n);
     await tools.makeTransaction();
-    while (await tools.getTokenLevel() > 0) await tools.swapback(500000000n);
+    while (await tools.getTokenLevel() > 0) await tools.swapback(50000000n);
     await tools.makeTransaction();
     await tools.swapback(5000n); // 前面的交易量太大，會讓price不準確
     console.log(await tools.fscs.assetBalance());

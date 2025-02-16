@@ -15,8 +15,8 @@ module.exports = {
     networks: {
         hardhat: {
             forking: {
-                url: "https://eth-mainnet.g.alchemy.com/v2/5ibJR2xUNR2z1ludTzNgB19VCJjVceb6",
-                blockNumber: 21228016
+                url: "https://arb-mainnet.g.alchemy.com/v2/5ibJR2xUNR2z1ludTzNgB19VCJjVceb6",
+                blockNumber: 306277297 
             },
             blockGasLimit: 19021092026,
             accounts: {
