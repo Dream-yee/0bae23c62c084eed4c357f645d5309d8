@@ -17,12 +17,13 @@ interface ICurvePool {
 }
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 contract FSCS is ERC4626{
     uint256 constant assetNo = 0;      //資產的索引
     uint256 constant targetNo = 1;     //交易標的的索引
     uint256 constant FEE_PRECISION = 10**10; //curve內部的常數
-    uint256 constant PREC_I = 10**12;      //curve內部的常數
-    uint256 constant PREC_J = 10**10;     //curve內部的常數
+    uint256 constant PREC_I = 10**12;      //curve內部的常數，與erc20的decimals相關
+    uint256 constant PREC_J = 10**10;      //續上，應該是1e18/decimals()
     uint256 constant PRECISION = 10**18; //curve內部的常數
     IERC20 immutable _target;          //交易標的
     uint immutable REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
@@ -167,31 +168,16 @@ contract FSCS is ERC4626{
         uint balance = assetBalance();
         if(assets > balance)
         {
-            balance = assets - balance; // dy
-            uint xp0 = curvePool.balances(assetNo);
-            uint xp1 = curvePool.balances(targetNo);
-            balance = FEE_PRECISION*balance/(FEE_PRECISION - curvePool.fee()) + 1; //revert  dy -= self._fee(xp) * dy / 10**10
-            //當存量遠離平衡點時，定積會是lower_bound
-            //當存量接近平衡點時，定和會是lower_bound
-            uint256 dx = xp0*xp1/(xp0-balance) - xp1 + 1; //定積
-            uint256 dx2 = balance * PREC_I; 
-            if(assetNo == 0)
-            {
-                dx2 = dx2 * PRECISION / curvePool.price_scale(targetNo-1);
-            }
-            else if(targetNo == 0)
-            {
-                dx2 = dx2 * curvePool.price_scale(assetNo-1);
-                dx2 /= PRECISION; //之所以拆成兩段,是因為弄成一段時編譯器無法發現assetNo > 0
-            }
-            else
-            {
-                dx2 = dx2 * curvePool.price_scale(assetNo-1) / curvePool.price_scale(targetNo-1);
-            }
-            dx2 = dx2 / PREC_J + 1;
-            if(dx2 > dx)dx = dx2; //取最大值
+            // 當資產不足時，需要先換回資產
+            // 交易的滑價、手續費由投資者吸收
+            uint256 dx = (assets - balance)*10**18 * PREC_I / PREC_J / getTokenPrice();  //需要拿去換的量是需要的量除以價格
+            console.log("dx:",dx);
             _target.approve(address(curvePool),dx);
-            curvePool.exchange(targetNo,assetNo,dx,balance); 
+            console.log("allowance:",_target.allowance(address(this),address(curvePool)));
+            curvePool.exchange(targetNo,assetNo,dx,0); 
+            console.log("targetBalance:",assetBalance());
+            assets = assetBalance(); //換回來的數量加上原先的量就是要轉的錢
+            console.log("assets:",assets);
         }
         SafeERC20.safeTransfer(IERC20(ERC4626.asset()), receiver, assets);
 
