@@ -36,28 +36,40 @@ async function main() {
     const abiPath = './artifacts/contracts/FSCS.sol/FSCS.json';
     const artifact = JSON.parse(fs.readFileSync(abiPath, 'utf8'));
     console.log("Deploying FSCS");
-    const bottom = ethers.parseUnits("10000", 18);
-    const reference = ethers.parseUnits("200000", 18);
-    const grid = 7;
-    const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
-    const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
-    // const chainlinkAddress = "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c";
-    const curvePoolAddress = "0x960ea3e3C7FB317332d990873d354E18d7645590";
+    // const bottom = 2n**64n*100n/110000n;
+    // const reference = 2n**64n*100n/90000n;
+    // const bottom = 90000n*2n**64n/100n;
+    // const reference = 110000n*2n**64n/100n;
+    const bottom = 1000n*2n**64n/100n;
+    const reference = 2000n*2n**64n/100n;
+    const grid = 50;
+    // const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+    // const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
+    // const poolAddress = "0x5969EFddE3cF5C0D9a88aE51E47d721096A97203";
+    const poolAddress = "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765";
+    const usdtAddress = "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0";
+    const wbtcAddress = "0x29f2D40B0605204364af54EC677bD022dA425d03";
     const fscs = await ethers.deployContract("FSCS", [
-        curvePoolAddress,
+        poolAddress,
         bottom,
         reference,
         grid,
     ],
         { maxFeePerGas: 10824610821 });
     console.log("FSCS address:", fscs.target);
+    const swapAbiPath = './artifacts/contracts/SwapContract.sol/SwapContract.json';
+    const swapArtifact = JSON.parse(fs.readFileSync(swapAbiPath, 'utf8'));
+    console.log("Deploying SwapContract");
+    const swap = await ethers.deployContract("SwapContract", [poolAddress],
+        { maxFeePerGas: 10824610821 });
 
     //將合約地址寫入json文件
     let contracts = {
         "USDT": usdtAddress,
         "WBTC": wbtcAddress,
         "FSCS": fscs.target,
-        "CurvePool": curvePoolAddress,
+        "Pool": poolAddress,
+        "SwapContract": swap.target,
     };
     fs.writeFileSync("./contracts.json", JSON.stringify(contracts, null, 4));
 }

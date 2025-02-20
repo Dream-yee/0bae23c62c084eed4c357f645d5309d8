@@ -1,6 +1,10 @@
 const { ethers } = require("hardhat");
 const address = require("../contracts.json");
 
+const zeroForOne = false;
+const MIN_SQRT_RATIO = 4295128739n;
+const MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342n;
+
 async function initContracts() {
     const fscsAddress = address["FSCS"];
     const fscsAbi = require("../artifacts/contracts/FSCS.sol/FSCS.json").abi;
@@ -12,28 +16,26 @@ async function initContracts() {
     const wbtcAddress = address["WBTC"];
     const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
 
-    const curveAddress = address["CurvePool"];
-    const curveAbi = [
-        "function last_prices(uint256) external view returns (uint256)",
-        "function exchange(uint256, uint256, uint256, uint256) external payable",
-        "function price_scale(uint256) external view returns (uint256)",
-        "function gamma() external view returns (uint256)",
-        "function A() external view returns (uint256)",
-        "function is_killed() external view returns (bool)",
-        "function fee() external view returns (uint256)",
-        "event TokenExchange(address indexed, uint256, uint256, uint256, uint256)"
-    ];
-    const curve = await ethers.getContractAt(curveAbi, curveAddress);
+    const poolAddress = address["Pool"];
+    const pool = await ethers.getContractAt("IUniswapV3Pool", poolAddress);
+    
+    const swapAddress = address["SwapContract"];
+    const swapAbi = require("../artifacts/contracts/SwapContract.sol/SwapContract.json").abi;
+    const swap = await ethers.getContractAt(swapAbi, swapAddress);
+
+    const [deployer] = await ethers.getSigners();
 
     return {
+        deployer,
         fscsAddress,
         fscs,
         usdtAddress,
         usdt,
         wbtcAddress,
         wbtc,
-        curveAddress,
-        curve,
+        poolAddress,
+        pool,
+        swap,
         async getPrice() {
             return await fscs.getTokenPrice();
         },
@@ -50,7 +52,11 @@ async function initContracts() {
         },
         async deposit(amount, account) {
             const signer = await ethers.getSigner(account);
-            await usdt.connect(signer).approve(fscsAddress, amount);
+            if(zeroForOne) {
+                await wbtc.connect(signer).approve(fscsAddress, amount);
+            } else {
+                await usdt.connect(signer).approve(fscsAddress, amount);
+            }
             const res = await fscs.connect(signer).deposit(amount, account);
             await res.wait();
         },
@@ -75,21 +81,41 @@ async function initContracts() {
         },
         async swapWAccount(amount, account) {
             const signer = await ethers.getSigner(account);
-            await usdt.connect(signer).approve(curveAddress, amount);
-            await curve.connect(signer).exchange(0, 1, amount, 0);
+            if(zeroForOne) {
+                await wbtc.connect(signer).approve(swapAddress, amount);
+            }
+            else {
+                await usdt.connect(signer).approve(swapAddress, amount);
+            }
+            await swap.connect(signer).swap(zeroForOne,amount);
         },
         async swap(amount) {
-            await usdt.approve(curveAddress, amount);
-            await curve.exchange(0, 1, amount, 0);
+            if(zeroForOne) {
+              await wbtc.approve(swapAddress, amount);
+            }
+            else {
+              await usdt.approve(swapAddress, amount);
+            }
+            await swap.swap(zeroForOne,amount);
         },
         async swapbackWAccount(amount, account) {
             const signer = await ethers.getSigner(account);
-            await wbtc.connect(signer).approve(curveAddress, amount);
-            await curve.connect(signer).exchange(1, 0, amount, 0);
+            if(zeroForOne) {
+                await usdt.connect(signer).approve(swapAddress, amount);
+            }
+            else {
+                await wbtc.connect(signer).approve(swapAddress, amount);
+            }
+            await swap.connect(signer).swap(!zeroForOne, amount);
         },
         async swapback(amount) {
-            await wbtc.approve(curveAddress, amount);
-            await curve.exchange(1, 0, amount, 0);
+            if(zeroForOne) {
+              await usdt.approve(swapAddress, amount);
+            }
+            else {
+              await wbtc.approve(swapAddress, amount);
+            }
+            await swap.swap(!zeroForOne, amount);
         }
     };
 }

@@ -2,69 +2,60 @@
 pragma solidity ^0.8.0;
 
 
-interface ICurvePool {
-    function exchange(
-        uint256 i, // 從代幣索引
-        uint256 j, // 到代幣索引
-        uint256 dx, // 輸入代幣數量
-        uint256 min_dy // 最小輸出代幣數量
-    ) external payable;
-    function last_prices(uint256 k) external view returns (uint256);
-    function balances(uint256 index) external view returns (uint256);
-    function price_scale(uint256 k) external view returns (uint256);
-    function fee() external view returns (uint256);
-    function coins(uint256 index) external view returns (address);
-}
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+library TickMath {
+    /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
+    uint160 internal constant MIN_SQRT_RATIO = 4295128739;
+    /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
+    uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
+}
 contract FSCS is ERC4626{
-    uint256 constant assetNo = 0;      //資產的索引
-    uint256 constant targetNo = 1;     //交易標的的索引
-    uint256 constant FEE_PRECISION = 10**10; //curve內部的常數
-    uint256 constant PREC_I = 10**12;      //curve內部的常數，與erc20的decimals相關
-    uint256 constant PREC_J = 10**10;      //續上，應該是1e18/decimals()
-    uint256 constant PRECISION = 10**18; //curve內部的常數
+    bool constant zeroForOne = false;
+    uint constant pricePrecision = 2**64;
     IERC20 immutable _target;          //交易標的
+    IUniswapV3Pool immutable uniswapPool; //交易所
     uint immutable public REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
     uint immutable public BOTTOM;             //地
     uint immutable public GRID_NUM;           //網格數
-    ICurvePool immutable curvePool;    //curve的合約
     uint[] buyQty;                     //買入的數量
-    uint previousLevel;                //上一次的網格位置
-    constructor(ICurvePool curvePool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(IERC20(curvePool_.coins(assetNo)))
+    uint public previousLevel;                //上一次的網格位置
+    event Buy(uint price, uint amount);
+    event Sell(uint price, uint amount);
+    constructor(IUniswapV3Pool Pool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(IERC20(zeroForOne?Pool_.token0():Pool_.token1()))
     {
-        _target = IERC20(curvePool_.coins(targetNo));
-        curvePool = curvePool_;
+        _target = IERC20(zeroForOne?Pool_.token1():Pool_.token0());
+        uniswapPool = Pool_;
         BOTTOM = bottom;
         REFERENCE = ref;
         GRID_NUM = gridNum;
         buyQty = new uint[](gridNum+1);
         previousLevel = getTokenLevel();
     }
+    
     /************************************************************************************************
      * view function
      ************************************************************************************************/
     function getTokenLevel()view public returns(uint)
     {
-        uint nowPrice = getTokenPrice();
-        if(nowPrice >= REFERENCE)return GRID_NUM;                 //如果現在的價格高於REFERENCE就不做事,i.e.不買
-        if(nowPrice < BOTTOM)return 0;                            //如果現在的價格低於BOTTOM就不做事,i.e.不賣
-        return GRID_NUM*(nowPrice-BOTTOM)/(REFERENCE - BOTTOM);   //目前位於的網格位置 
+      return _calcTokenLevel(getTokenPrice());
     }
     function getTokenPrice() view public returns (uint)
     {
-        // last_price(k) 表示第k+1個代幣相對於第0個代幣的價格的10**18倍
-        // 這些if在編譯器優化下會被死碼移除
-        if(assetNo == 0)
-            return curvePool.last_prices(targetNo - 1); 
-        if(targetNo == 0)
-            return 10**36/curvePool.last_prices(assetNo - 1); 
-        return curvePool.last_prices(targetNo - 1)*10**18/curvePool.last_prices(assetNo - 1); 
+        //回傳價格，其值是真實價格的2^64倍(不考慮每個幣的decimal，即1USDT視為1e6個)
+        (uint256 sqrtPriceX96,,,,,,) = uniswapPool.slot0();
+        if(zeroForOne)
+        {
+            return (2**192/sqrtPriceX96)*pricePrecision/sqrtPriceX96;
+        }
+        else
+        {
+            return sqrtPriceX96*sqrtPriceX96/(2**192/pricePrecision);
+        }
     }
     function totalAssets()view public override returns (uint)
     {
-        return ERC4626.totalAssets()+ getTokenPrice()*_target.balanceOf(address(this));
+        return ERC4626.totalAssets()+ getTokenPrice()*_target.balanceOf(address(this))/pricePrecision;
     }
     function assetBalance()view public returns (uint)
     {
@@ -78,16 +69,17 @@ contract FSCS is ERC4626{
     {
         return address(_target);
     }
-    function curvePoolAddress() view public returns(address)
+    function poolAddress() view public returns(address)
     {
-        return address(curvePool);
+        return address(uniswapPool);
     }
     /************************************************************************************************
      * transaction function
      ************************************************************************************************/
-    function makeTransaction() public 
+    function makeTransaction() external 
     {
-        uint level = getTokenLevel();
+        uint nowPrice = getTokenPrice();
+        uint level = _calcTokenLevel(nowPrice);
         if(level == previousLevel)return;
         if(level < previousLevel) //買入
         {
@@ -104,8 +96,8 @@ contract FSCS is ERC4626{
                     }
                 }
                 require(cnt != 0,"totalAmount is 0");
-                SafeERC20.forceApprove(IERC20(ERC4626.asset()), address(curvePool), amount*cnt);
-                curvePool.exchange(assetNo, targetNo, amount*cnt, 0);
+                emit Buy(nowPrice,amount*cnt);
+                uniswapPool.swap(address(this),zeroForOne,int(amount*cnt),zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
                 uint dTargetBalance = targetBalance() - targetBalance0;
                 uint k = level;
                 for(uint j = 0 ; j < cnt; k++)
@@ -129,14 +121,28 @@ contract FSCS is ERC4626{
                     buyQty[i] = 0;
                 }
             }
-            if(totalAmount != 0)
+            if(totalAmount > 0)
             {
-                _target.approve(address(curvePool),totalAmount);
-                curvePool.exchange(targetNo,assetNo,totalAmount,0);
+                emit Sell(nowPrice,totalAmount);
+                uniswapPool.swap(address(this),!zeroForOne,int(totalAmount),!zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
             }
         }
         previousLevel = level;
         return;
+    }
+    function uniswapV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes calldata data
+    ) external {
+        require(msg.sender == address(uniswapPool), "Not pool");
+
+        if (amount0Delta > 0) {
+            (zeroForOne?IERC20(ERC4626.asset()):_target).transfer( msg.sender, uint256(amount0Delta));
+        }
+        if (amount1Delta > 0) {
+            (!zeroForOne?IERC20(ERC4626.asset()):_target).transfer( msg.sender, uint256(amount1Delta));
+        }
     }
     //When the contract does not have enough usdt, exchange wbtc to usdt
     function _withdraw(
@@ -162,17 +168,20 @@ contract FSCS is ERC4626{
         {
             // 當資產不足時，需要先換回資產
             // 交易的滑價、手續費由投資者吸收
-            uint256 dx = (assets - balance)*10**18 * PREC_I / PREC_J / getTokenPrice();  //需要拿去換的量是需要的量除以價格
-            console.log("dx:",dx);
-            _target.approve(address(curvePool),dx);
-            console.log("allowance:",_target.allowance(address(this),address(curvePool)));
-            curvePool.exchange(targetNo,assetNo,dx,0); 
-            console.log("targetBalance:",assetBalance());
+            uint256 dx = (assets - balance)*pricePrecision / getTokenPrice();  //需要拿去換的量是需要的量除以價格
+            uniswapPool.swap(address(this),!zeroForOne,int(dx),!zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
             assets = assetBalance(); //換回來的數量加上原先的量就是要轉的錢
-            console.log("assets:",assets);
         }
         SafeERC20.safeTransfer(IERC20(ERC4626.asset()), receiver, assets);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
+    }
+    /************************************************************************************************
+     * internal function
+     ************************************************************************************************/
+    function _calcTokenLevel(uint256 price) internal view returns (uint256) {
+        if(price >= REFERENCE)return GRID_NUM;                 //如果現在的價格高於REFERENCE就不做事,i.e.不買
+        if(price < BOTTOM)return 0;                            //如果現在的價格低於BOTTOM就不做事,i.e.不賣
+        return GRID_NUM*(price-BOTTOM)/(REFERENCE - BOTTOM);   //目前位於的網格位置 
     }
 }
