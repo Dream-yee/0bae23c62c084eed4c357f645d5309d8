@@ -1,61 +1,87 @@
 const { ethers } = require("hardhat");
 const address = require("../contracts.json");
 
-async function distributeToken() {
-    //找到巨鯨
-    const USDT_WHALE = "0xF977814e90dA44bFA03b6295A0616a897441aceC"; //這是幣安的錢包
-    const WBTC_WHALE = "0xa3A7B6F88361F48403514059F1F16C8E78d60EeC";
-    await network.provider.send("hardhat_impersonateAccount", [USDT_WHALE]);
-    const usdtHolderSigner = await ethers.getSigner(USDT_WHALE);
-    await network.provider.send("hardhat_impersonateAccount", [WBTC_WHALE]);
-    const wbtcHolderSigner = await ethers.getSigner(WBTC_WHALE);
+const zeroForOne = false;
 
-    //一些重要的常數
-    const [deployer] = await ethers.getSigners();
-    const address = require("../contracts.json"); //讀取合約地址
-    const usdtAmount = ethers.parseUnits("100000000", 6); //1e9個usdt
-    const wbtcAmount = ethers.parseUnits("9000", 8); //9e3個wbtc
-
-    //將usdt 分配給使用者
-    const usdtAddress = address["USDT"];
-    const usdt = await ethers.getContractAt("IERC20", usdtAddress);
-    await usdt.connect(usdtHolderSigner).transfer(deployer, usdtAmount);
-    const provider = new ethers.JsonRpcProvider("http://localhost:8545");
-    const accounts = await provider.listAccounts();
-    for (let i = 1; i < 5; i++) {
-        await usdt.connect(deployer).transfer(accounts[i].address, 1000000000000);
-        console.log("分配給" + accounts[i].address);
-    }
-
-    const wbtcAddress = address["WBTC"];
-    const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
-    await network.provider.send("hardhat_setBalance", [
-        WBTC_WHALE,
-        "0x56BC75E2D631000000", // 100 ETH in hex
-    ]);
-    wbtc.connect(wbtcHolderSigner).transfer(deployer, wbtcAmount);
-}
-
+// async function distributeToken() {
+//     //找到巨鯨
+//     // const USDT_WHALE = "0xF977814e90dA44bFA03b6295A0616a897441aceC"; //452,552,724.53 USDT
+//     // const WBTC_WHALE = "0x078f358208685046a11C85e8ad32895DED33A249"; //Aave: aWBTC Token V3, 2699 WBTC
+//     const USDT_WHALE = "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765"; 
+//     const WBTC_WHALE = "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765"; 
+//     await network.provider.send("hardhat_impersonateAccount", [USDT_WHALE]);
+//     const usdtHolderSigner = await ethers.getSigner(USDT_WHALE);
+//     await network.provider.send("hardhat_impersonateAccount", [WBTC_WHALE]);
+//     const wbtcHolderSigner = await ethers.getSigner(WBTC_WHALE);
+//
+//     //一些重要的常數
+//     const [deployer] = await ethers.getSigners();
+//     const address = require("../contracts.json"); //讀取合約地址
+//     const usdtAmount = ethers.parseUnits("102440", 6); //4e8個usdt 40000000
+//     const wbtcAmount = ethers.parseUnits("100", 8); //2e3個wbtc 2500
+//
+//     const provider = new ethers.JsonRpcProvider("http://localhost:8545");
+//     const accounts = await provider.listAccounts();
+//     const usdtAddress = address["USDT"];
+//     const usdt = await ethers.getContractAt("IERC20", usdtAddress);
+//     const wbtcAddress = address["WBTC"];
+//     const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
+//     await network.provider.send("hardhat_setBalance", [
+//         WBTC_WHALE,
+//         "0x56BC75E2D631000000", // 100 ETH in hex
+//     ]);
+//     await usdt.connect(usdtHolderSigner).transfer(deployer, usdtAmount);
+//     await wbtc.connect(wbtcHolderSigner).transfer(deployer, wbtcAmount);
+//     if(zeroForOne) {
+//       for (let i = 1; i < 5; i++) {
+//           await wbtc.connect(deployer).transfer(accounts[i].address, 40_000_000_000);
+//           console.log("分配給" + accounts[i].address);
+//       }
+//     }
+//     else{
+//       for (let i = 1; i < 5; i++) {
+//           await usdt.connect(deployer).transfer(accounts[i].address, 1_000_000_000);
+//           console.log("分配給" + accounts[i].address);
+//       }
+//     }
+//
+//
+// }
+//
 async function mint() {
     //先創建FSCS合約實例
     const fscsAddress = address["FSCS"];
     const fscs = await ethers.getContractAt("FSCS", fscsAddress);
-    const usdtAddress = address["USDT"];
-    const usdt = await ethers.getContractAt("IERC20", usdtAddress);
-    //得到所有人的地址
+  //得到所有帳戶
     const provider = new ethers.JsonRpcProvider("http://localhost:8545");
     const accounts = await provider.listAccounts();
-    for (let i = 0; i < 5; i++) {
-        await usdt.connect(accounts[i]).approve(fscsAddress, 100000000000);
-        let res = await fscs.connect(accounts[i]).deposit(100000000000, accounts[i].address);
+    if(zeroForOne)
+    {
+      const wbtcAddress = address["WBTC"];
+      const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
+      for (let i = 0; i < 5; i++) {
+        await wbtc.connect(accounts[i]).approve(fscsAddress, 40000000000);
+        let res = await fscs.connect(accounts[i]).deposit(40000000000, accounts[i].address);
         res.wait();
+      }
+    }
+    else
+    {
+      const usdtAddress = address["USDT"];
+      const usdt = await ethers.getContractAt("IERC20", usdtAddress);
+      for (let i = 0; i < 5; i++) {
+        await usdt.connect(accounts[i]).approve(fscsAddress, 1000000000);
+        let res = await fscs.connect(accounts[i]).deposit(1000000000, accounts[i].address);
+        res.wait();
+      }
     }
 }
 
-//分配代幣
-distributeToken()
-    .then(() => {
-        console.log("分配完畢");
-        mint()
-    })
-//讓使用者鑄造fscs
+////分配代幣
+//distributeToken()
+//    .then(() => {
+//        console.log("分配完畢");
+//        mint()
+//    })
+////讓使用者鑄造fscs
+mint()
