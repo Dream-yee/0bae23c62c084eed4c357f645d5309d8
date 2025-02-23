@@ -2,20 +2,20 @@
 const zeroForOne = false; 
 async function main() {
     const tools = await require("./tools.js")
-    while (await tools.getTokenLevel() < 39) 
+    while (await tools.getTokenLevel() < 30) 
     {
-        await tools.swap(zeroForOne?50_000_000n:500_000_000n);
+        await tools.swap(zeroForOne?50_000_000n:50_000_000_000n);
         console.log(await tools.getTokenLevel());
     }
     await tools.makeTransaction();
     while (await tools.getTokenLevel() > 10) 
     {
-        await tools.swapback(zeroForOne?50_000_000_000n:500_000_000n);
+        await tools.swapback(zeroForOne?50_000_000_000n:50_000_000_000n);
         console.log(await tools.getTokenLevel());
     }
     while(await tools.getTokenLevel() > 0)
     {
-        await tools.swapback(zeroForOne?5_000_000n:50_000_000n);
+        await tools.swapback(zeroForOne?5_000_000n:500_000_000n);
         console.log(await tools.getTokenLevel());
     }
     await tools.makeTransaction();
