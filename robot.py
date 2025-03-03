@@ -1,8 +1,10 @@
 import web3
 import json
 import my_config
+import time
 # FSCS contract address on sepolia
-fscs_adderss = "0x73F601aF1293Db93d6297F099FaFC124266275E9"
+fscs_bd_adderss = "0x21b15d7f0259739487ba72A69a7f8e70FFBA032c"
+fscs_ad_adderss = "0xeB9d36D046FAA4D0a0f9d9A08d55d8A8B117065d"
 
 # Uniswap contract address on sepolia
 uniswap_contract_address = "0x5969EFddE3cF5C0D9a88aE51E47d721096A97203"
@@ -21,63 +23,50 @@ with open("./artifacts/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol/
     uniswap_abi = json.load(f)["abi"]
 
 # Get the contract
-fscs = w3.eth.contract(address=fscs_adderss, abi=fscs_abi)
+fscs_bd = w3.eth.contract(address=fscs_bd_adderss, abi=fscs_abi)
+fscs_ad = w3.eth.contract(address=fscs_ad_adderss, abi=fscs_abi)
 uniswap_contract = w3.eth.contract(address=uniswap_contract_address, abi=uniswap_abi)
 
-def getAllfunctions():
-    return fscs.all_functions()
 
-def getPrice():
-    return fscs.functions.getTokenPrice().call()
+def getPreviousLevel(contract):
+    return contract.functions.previousLevel().call()
 
-def getPreviousLevel():
-    return fscs.functions.previousLevel().call()
-
-def getTokenLevel():
-    return fscs.functions.getTokenLevel().call()
+def getTokenLevel(contract):
+    return contract.functions.getTokenLevel().call()
 
 
-def swap(pool,zeroForOne,amount):
-    estimate_gas = pool.functions.swap(my_config.ACCOUNT, zeroForOne, amount, 0, my_config.ACCOUNT, 1840212412).estimate_gas()
-    tx = pool.functions.swap(0, zeroForOne, amount, 0, my_config.ACCOUNT, 1840212412).buildTransaction({
-        'frm': my_config.ACCOUNT,
-        'nonce': w3.eth.getTransactionCount(my_config.ACCOUNT),
-        'gas': estimate_gas,
-        'gasPrice': w3.toWei('5', 'gwei')
-    })
-    logger.debug(f"tx: {tx}")
-    signed_tx = w3.eth.account.sign_transaction(tx,private_key=bytes.frmhex(my_config.PRIVATE_KEY))
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-    logger.debug(f"tx_hash: {tx_hash}")
-    return tx_hash
-
-def makeTransaction():
+def makeTransaction(contract):
     # 估算需要用到的gas fee
-    estimate_gas = fscs.functions.makeTransaction().estimate_gas()
-    print(f"Estimated gas: {estimate_gas}")
+    estimate_gas = contract.functions.makeTransaction().estimate_gas()
     # 建構交易
-    tx = fscs.functions.makeTransaction().buildTransaction({
-        'frm': my_config.ACCOUNT,
-        'nonce': w3.eth.getTransactionCount(my_config.ACCOUNT),
+    tx = contract.functions.makeTransaction().build_transaction({
+        'from': my_config.ACCOUNT,
+        'nonce': w3.eth.get_transaction_count(my_config.ACCOUNT),
         'gas': estimate_gas,
-        'gasPrice': w3.toWei('0.0095', 'gwei')
+        'gasPrice': w3.eth.gas_price
     })
-    logger.debug(f"tx: {tx}")
-    signed_tx = w3.eth.account.sign_transaction(tx,private_key=bytes.frmhex(my_config.PRIVATE_KEY))
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-    logger.debug(f"tx_hash: {tx_hash}")
+    signed_tx = w3.eth.account.sign_transaction(tx,private_key=bytes.fromhex(my_config.PRIVATE_KEY))
+    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
     return tx_hash
 
 def main():
-    previous_level = getPreviousLevel()
-    level = getTokenLevel()
-    print(f"Previous level: {previous_level}")
-    print(f"Current level: {level}")
+    previous_level = getPreviousLevel(fscs_ad)
+    level = getTokenLevel(fscs_ad)
+    with open("log.txt", "a") as f:
+        f.write(f"--- {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())} ---\n")
+        f.write(f"Previous level: {previous_level}\n")
+        f.write(f"Current level: {level}\n")
+        f.write("\n")
     if previous_level != level:
-        makeTransaction()
+        tx_hash = makeTransaction(fscs_ad)
+        with open("log.txt", "a") as f:
+            f.write("--- Transaction made \n")
+            f.write(f"Tx hash: {tx_hash}\n")
 
 if __name__ == "__main__":
-    main()
+    while True:
+        main()
+        time.sleep(600)
 
 
 
