@@ -21,3 +21,4 @@ tmp.*
 
 my_config.py
 log.txt
+__pycache__/
