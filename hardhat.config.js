@@ -28,10 +28,10 @@ module.exports = {
   networks: {
     hardhat: {
         forking: {
-            // url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-            // blockNumber: 306277297 
-            url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-            blockNumber: 7747378
+            url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+            blockNumber: 306277297 
+            // url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+            // blockNumber: 7747378
         },
         blockGasLimit: 19021092026,
         accounts: {
@@ -40,6 +40,10 @@ module.exports = {
     },
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+      accounts: [SEPOLIA_PRIVATE_KEY]
+    },
+    arbitrum: {
+      url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
       accounts: [SEPOLIA_PRIVATE_KEY]
     }
   }

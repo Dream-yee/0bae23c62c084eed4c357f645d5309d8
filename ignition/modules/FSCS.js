@@ -1,17 +1,21 @@
-// This setup uses Hardhat Ignition to manage smart contract deployments.
-// Learn more about it at https://hardhat.org/ignition
-
 const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
+const TokenModule = buildModule("FSCS_wBTC_AD", (m) => {
+    const bottom = 70000n*2n**64n/100n;
+    const reference = 100000n*2n**64n/100n;
+    const grid = 22;
+    const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+    const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
+    const poolAddress = "0x5969EFddE3cF5C0D9a88aE51E47d721096A97203";
+    const token = m.contract("FSCS",[
+        poolAddress,
+        bottom,
+        reference,
+        grid,
+      ]
+    );
 
-module.exports = buildModule("LockModule", (m) => {
-
-    const usdtAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-    const wbtcAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-    const swapAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-    const bottom = 10;
-    const reference = 100;
-    const grid = 5;
-    const fscs = m.contract("FSCS", [usdtAddress,wbtcAddress,swapAddress,bottom,reference,grid]);
-    return { fscs };
+  return { token };
 });
+
+module.exports = TokenModule;

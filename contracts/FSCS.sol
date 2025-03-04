@@ -95,18 +95,20 @@ contract FSCS is ERC4626{
                         cnt += 1;
                     }
                 }
-                require(cnt != 0,"totalAmount is 0");
-                emit Buy(nowPrice,amount*cnt);
-                uniswapPool.swap(address(this),zeroForOne,int(amount*cnt),zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
-                uint dTargetBalance = targetBalance() - targetBalance0;
-                uint k = level;
-                for(uint j = 0 ; j < cnt; k++)
+                if(cnt != 0)
                 {
-                    if(buyQty[k] == 0)
-                    {
-                        buyQty[k] = (dTargetBalance+j)/cnt;
-                        j++;
-                    }
+                  emit Buy(nowPrice,amount*cnt);
+                  uniswapPool.swap(address(this),zeroForOne,int(amount*cnt),zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
+                  uint dTargetBalance = targetBalance() - targetBalance0;
+                  uint k = level;
+                  for(uint j = 0 ; j < cnt; k++)
+                  {
+                      if(buyQty[k] == 0)
+                      {
+                          buyQty[k] = (dTargetBalance+j)/cnt;
+                          j++;
+                      }
+                  }
                 }
             }
         }
@@ -144,6 +146,14 @@ contract FSCS is ERC4626{
             (!zeroForOne?IERC20(ERC4626.asset()):_target).transfer( msg.sender, uint256(amount1Delta));
         }
     }
+    /************************************************************************************************
+     * internal function
+     ************************************************************************************************/
+    function _calcTokenLevel(uint256 price) internal view returns (uint256) {
+        if(price >= REFERENCE)return GRID_NUM;                 //如果現在的價格高於REFERENCE就不做事,i.e.不買
+        if(price < BOTTOM)return 0;                            //如果現在的價格低於BOTTOM就不做事,i.e.不賣
+        return GRID_NUM*(price-BOTTOM)/(REFERENCE - BOTTOM);   //目前位於的網格位置 
+    }
     //When the contract does not have enough usdt, exchange wbtc to usdt
     function _withdraw(
         address caller,
@@ -175,13 +185,5 @@ contract FSCS is ERC4626{
         SafeERC20.safeTransfer(IERC20(ERC4626.asset()), receiver, assets);
 
         emit Withdraw(caller, receiver, owner, assets, shares);
-    }
-    /************************************************************************************************
-     * internal function
-     ************************************************************************************************/
-    function _calcTokenLevel(uint256 price) internal view returns (uint256) {
-        if(price >= REFERENCE)return GRID_NUM;                 //如果現在的價格高於REFERENCE就不做事,i.e.不買
-        if(price < BOTTOM)return 0;                            //如果現在的價格低於BOTTOM就不做事,i.e.不賣
-        return GRID_NUM*(price-BOTTOM)/(REFERENCE - BOTTOM);   //目前位於的網格位置 
     }
 }

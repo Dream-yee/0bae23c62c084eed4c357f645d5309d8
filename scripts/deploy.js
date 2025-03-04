@@ -38,17 +38,19 @@ async function main() {
     console.log("Deploying FSCS");
     // const bottom = 2n**64n*100n/110000n;
     // const reference = 2n**64n*100n/90000n;
-    // const bottom = 90000n*2n**64n/100n;
-    // const reference = 110000n*2n**64n/100n;
-    const bottom = 1000n*2n**64n/100n;
-    const reference = 2000n*2n**64n/100n;
+    // arb
+    const bottom = 90000n*2n**64n/100n;
+    const reference = 110000n*2n**64n/100n;
     const grid = 50;
-    // const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
-    // const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
-    // const poolAddress = "0x5969EFddE3cF5C0D9a88aE51E47d721096A97203";
-    const poolAddress = "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765";
-    const usdtAddress = "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0";
-    const wbtcAddress = "0x29f2D40B0605204364af54EC677bD022dA425d03";
+    const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+    const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
+    const poolAddress = "0x5969EFddE3cF5C0D9a88aE51E47d721096A97203";
+    // Sepolia
+    // const poolAddress = "0x4b053461dd564CF8e0d2F9E3b73D78BD837de765";
+    // const usdtAddress = "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0";
+    // const wbtcAddress = "0x29f2D40B0605204364af54EC677bD022dA425d03";
+    // const bottom = 1000n*2n**64n/100n;
+    // const reference = 2000n*2n**64n/100n;
     const fscs = await ethers.deployContract("FSCS", [
         poolAddress,
         bottom,

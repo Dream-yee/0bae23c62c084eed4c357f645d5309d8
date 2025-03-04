@@ -18,6 +18,9 @@ const VAULT_ABI = [
   "function symbol() view returns (string)",
   "function convertToAssets(uint256 shares) view returns (uint256)",
   "function convertToShares(uint256 assets) view returns (uint256)"
+  "function previousLevel() view returns (uint256)",
+  "function getTokenLevel() view returns (uint256)",
+  "function makeTransaction() returns ()"
 ];
 
 // ERC20 ABI 只包含我們需要的函數
@@ -59,6 +62,8 @@ const Vault = () => {
           const balance = await usdtContract.balanceOf(account);
           const shares = await vaultContract.balanceOf(account);
           const assets = await vaultContract.convertToAssets(shares);
+          const previousLevel = await vaultContract.previousLevel();
+          const currentLevel = await vaultContract.getTokenLevel();
 
           // 設置最大餘額：存款時使用 USDT 餘額，提款時使用 vault shares
           setMaxBalance(isDepositing 
