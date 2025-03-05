@@ -62,8 +62,8 @@ async function mint() {
       const wbtcAddress = address["WBTC"];
       const wbtc = await ethers.getContractAt("IERC20", wbtcAddress);
       for (let i = 0; i < 5; i++) {
-        await wbtc.connect(accounts[i]).approve(fscsAddress, 40000000000);
-        let res = await fscs.connect(accounts[i]).deposit(40000000000, accounts[i].address);
+        await wbtc.connect(accounts[i]).approve(fscsAddress, 40_000_000);
+        let res = await fscs.connect(accounts[i]).deposit(40_000_000, accounts[i].address);
         res.wait();
       }
     }
@@ -72,8 +72,8 @@ async function mint() {
       const usdtAddress = address["USDT"];
       const usdt = await ethers.getContractAt("IERC20", usdtAddress);
       for (let i = 0; i < 5; i++) {
-        await usdt.connect(accounts[i]).approve(fscsAddress, 100_000_000);
-        let res = await fscs.connect(accounts[i]).deposit(100_000_000, accounts[i].address);
+        await usdt.connect(accounts[i]).approve(fscsAddress, 10_000_000);
+        let res = await fscs.connect(accounts[i]).deposit(10_000_000, accounts[i].address);
         res.wait();
       }
     }

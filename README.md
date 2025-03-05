@@ -10,5 +10,6 @@
 5. 若是Deposit將會獲得FSCS代幣，若是Withdraw則會將FSCS換成USDT。
 ## Other Documents
 - [Interface](./docs/interface.md)
-
 ## Contracts On Mainnet
+[FSCS_AD](0x597541Ee4bCd9f28350D1DFCB5E951DbB58641c9)
+[FSCS_BD](0xe71b317dA7Ac7eA327Dad64c5Fa43dB92D343C96)

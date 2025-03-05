@@ -39,9 +39,9 @@ async function main() {
     // const bottom = 2n**64n*100n/110000n;
     // const reference = 2n**64n*100n/90000n;
     // arb
-    const bottom = 90000n*2n**64n/100n;
-    const reference = 110000n*2n**64n/100n;
-    const grid = 50;
+    const bottom = 15475n*2n**64n/100n;
+    const reference = 130000n*2n**64n/100n;
+    const grid = 13;
     const usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
     const wbtcAddress = "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f";
     const poolAddress = "0x5969EFddE3cF5C0D9a88aE51E47d721096A97203";
