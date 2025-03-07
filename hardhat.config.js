@@ -29,7 +29,7 @@ module.exports = {
     hardhat: {
         forking: {
             url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
-            blockNumber: 306277297 
+            blockNumber: 312121040
             // url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
             // blockNumber: 7747378
         },

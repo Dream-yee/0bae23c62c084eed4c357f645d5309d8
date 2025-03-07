@@ -39,6 +39,9 @@ async function initContracts() {
         async getPrice() {
             return await fscs.getTokenPrice();
         },
+        async getPreviousLevel() {
+            return await fscs.previousLevel();
+        },
         async buySignal() {
             return await fscs.buySignal();
         },
@@ -116,6 +119,15 @@ async function initContracts() {
               await wbtc.approve(swapAddress, amount);
             }
             await swap.swap(!zeroForOne, amount);
+        },
+        async totalAssets() {
+            return await fscs.totalAssets();
+        },
+        async buyQty(level) {
+            return await fscs.buyQty(level);
+        },
+        async GRID_NUM(){
+          return fscs.GRID_NUM();
         }
     };
 }

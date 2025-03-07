@@ -18,18 +18,18 @@ contract FSCS is ERC4626{
     uint immutable public REFERENCE;          //相當於天，但是我們參考的pinescript是寫reference
     uint immutable public BOTTOM;             //地
     uint immutable public GRID_NUM;           //網格數
-    uint[] buyQty;                     //買入的數量
+    uint[] public buyQty;                     //買入的數量
     uint public previousLevel;                //上一次的網格位置
     event Buy(uint price, uint amount);
     event Sell(uint price, uint amount);
-    constructor(IUniswapV3Pool Pool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS","FSCS") ERC4626(IERC20(zeroForOne?Pool_.token0():Pool_.token1()))
+    constructor(IUniswapV3Pool Pool_, uint bottom , uint ref , uint gridNum)ERC20("FSCS_BD","FSCS") ERC4626(IERC20(zeroForOne?Pool_.token0():Pool_.token1()))
     {
         _target = IERC20(zeroForOne?Pool_.token1():Pool_.token0());
         uniswapPool = Pool_;
         BOTTOM = bottom;
         REFERENCE = ref;
         GRID_NUM = gridNum;
-        buyQty = new uint[](gridNum+1);
+        buyQty = new uint[](gridNum-1);
         previousLevel = getTokenLevel();
     }
     
@@ -78,21 +78,33 @@ contract FSCS is ERC4626{
      ************************************************************************************************/
     function makeTransaction() external 
     {
+        // 交易函數，根據價格變化，進行交易
+        // 在第i網格買入的數量是buyQty[i]，會在i+2網格賣出
+        // 因為買入會在區間的頂端，賣出會在區間的底端
+        // 因此若是i+1則失去利潤 
         uint nowPrice = getTokenPrice();
         uint level = _calcTokenLevel(nowPrice);
         if(level == previousLevel)return;
         if(level < previousLevel) //買入
         {
+            if(previousLevel == GRID_NUM)
+            {
+                previousLevel = GRID_NUM-1;
+            }
             uint amount = assetBalance()/previousLevel; 
-            uint cnt = 0;
-            uint targetBalance0 = targetBalance();
             if(amount != 0)
             {
-                for(uint i = level; i < previousLevel; i++)
+                uint cnt = 0;
+                uint targetBalance0 = targetBalance();
+                for(uint i = level; i < previousLevel; )
                 {
                     if(buyQty[i] == 0)
                     {
                         cnt += 1;
+                    }
+                    unchecked
+                    {
+                        i++;
                     }
                 }
                 if(cnt != 0)
@@ -101,12 +113,19 @@ contract FSCS is ERC4626{
                   uniswapPool.swap(address(this),zeroForOne,int(amount*cnt),zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
                   uint dTargetBalance = targetBalance() - targetBalance0;
                   uint k = level;
-                  for(uint j = 0 ; j < cnt; k++)
+                  for(uint j = 0 ; j < cnt; )
                   {
                       if(buyQty[k] == 0)
                       {
                           buyQty[k] = (dTargetBalance+j)/cnt;
-                          j++;
+                          unchecked
+                          {
+                            j++;
+                          }
+                      }
+                      unchecked
+                      {
+                        k++;
                       }
                   }
                 }
@@ -115,12 +134,20 @@ contract FSCS is ERC4626{
         else if(level > previousLevel) //賣出
         {
             uint totalAmount = 0;
-            for(uint i = previousLevel ; i < level; i++)
+            if(previousLevel == 0)
             {
-                if(buyQty[i] != 0)
+                previousLevel = 1;
+            }
+            for(uint i = previousLevel ; i < level; )
+            {
+                if(buyQty[i-1] != 0)
                 {
-                    totalAmount += buyQty[i];
-                    buyQty[i] = 0;
+                    totalAmount += buyQty[i-1];
+                    buyQty[i-1] = 0;
+                }
+                unchecked
+                {
+                    i++;
                 }
             }
             if(totalAmount > 0)
@@ -150,6 +177,7 @@ contract FSCS is ERC4626{
      * internal function
      ************************************************************************************************/
     function _calcTokenLevel(uint256 price) internal view returns (uint256) {
+        // return the level of the toke, [0,GRID_NUM]
         if(price >= REFERENCE)return GRID_NUM;                 //如果現在的價格高於REFERENCE就不做事,i.e.不買
         if(price < BOTTOM)return 0;                            //如果現在的價格低於BOTTOM就不做事,i.e.不賣
         return GRID_NUM*(price-BOTTOM)/(REFERENCE - BOTTOM);   //目前位於的網格位置 
@@ -181,6 +209,22 @@ contract FSCS is ERC4626{
             uint256 dx = (assets - balance)*pricePrecision / getTokenPrice();  //需要拿去換的量是需要的量除以價格
             uniswapPool.swap(address(this),!zeroForOne,int(dx),!zeroForOne?TickMath.MIN_SQRT_RATIO+1:TickMath.MAX_SQRT_RATIO-1,"");
             assets = assetBalance(); //換回來的數量加上原先的量就是要轉的錢
+            for(uint i = previousLevel; dx > 0 ; i++)
+            {
+                if(buyQty[i] != 0)
+                {
+                    if(buyQty[i] > dx)
+                    {
+                        buyQty[i] -= dx;
+                        dx = 0;
+                    }
+                    else
+                    {
+                        dx -= buyQty[i];
+                        buyQty[i] = 0;
+                    }
+                }
+            }
         }
         SafeERC20.safeTransfer(IERC20(ERC4626.asset()), receiver, assets);
 
